@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medieval Intrigue - Court Politics</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Georgia', serif;
+            background: linear-gradient(135deg, #2c1810 0%, #8b4513 50%, #2c1810 100%);
+            color: #f4e4bc;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .game-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 15px;
+            border: 3px solid #d4af37;
+            box-shadow: 0 0 30px rgba(212, 175, 55, 0.3);
+            overflow: hidden;
+        }
+
+        .game-header {
+            background: linear-gradient(90deg, #8b0000, #b22222);
+            padding: 20px;
+            text-align: center;
+            border-bottom: 2px solid #d4af37;
+        }
+
+        .game-title {
+            font-size: 2.5em;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+            margin-bottom: 10px;
+        }
+
+        .game-subtitle {
+            font-size: 1.2em;
+            opacity: 0.9;
+            font-style: italic;
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .main-area {
+            background: rgba(139, 69, 19, 0.2);
+            border-radius: 10px;
+            border: 2px solid #8b4513;
+            padding: 20px;
+        }
+
+        .sidebar {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            border: 2px solid #8b4513;
+            padding: 15px;
+        }
+
+        .turn-info {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(139, 0, 0, 0.3);
+            border-radius: 8px;
+            border: 1px solid #d4af37;
+        }
+
+        .turn-number {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .players-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .player-card {
+            background: rgba(139, 69, 19, 0.4);
+            border: 2px solid #8b4513;
+            border-radius: 10px;
+            padding: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .player-card.human {
+            border-color: #d4af37;
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.3);
+        }
+
+        .player-card.winner {
+            background: rgba(212, 175, 55, 0.3);
+            border-color: #ffd700;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+
+        .player-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .player-type {
+            font-size: 0.8em;
+            opacity: 0.8;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 8px;
+            border-radius: 12px;
+        }
+
+        .prestige-score {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #d4af37;
+            margin-bottom: 10px;
+        }
+
+        .player-action {
+            font-style: italic;
+            opacity: 0.9;
+            margin-top: 8px;
+            padding: 5px 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+            border-left: 3px solid #8b4513;
+        }
+
+        .actions-panel {
+            margin-bottom: 20px;
+        }
+
+        .actions-title {
+            font-size: 1.4em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+            color: #d4af37;
+        }
+
+        .actions-grid {
+            display: grid;
+            gap: 10px;
+        }
+
+        .action-button {
+            background: linear-gradient(135deg, #8b4513, #a0522d);
+            border: 2px solid #d4af37;
+            color: #f4e4bc;
+            padding: 12px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95em;
+            font-family: 'Georgia', serif;
+            transition: all 0.3s ease;
+            text-align: left;
+            position: relative;
+        }
+
+        .action-button:hover {
+            background: linear-gradient(135deg, #a0522d, #cd853f);
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .action-button:active {
+            transform: translateY(0);
+        }
+
+        .action-button.selected {
+            background: linear-gradient(135deg, #d4af37, #ffd700);
+            color: #2c1810;
+            border-color: #ffd700;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+        }
+
+        .action-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .action-title {
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .action-description {
+            font-size: 0.85em;
+            opacity: 0.9;
+            line-height: 1.3;
+        }
+
+        .execute-turn {
+            width: 100%;
+            background: linear-gradient(135deg, #8b0000, #b22222);
+            border: 3px solid #d4af37;
+            color: #f4e4bc;
+            padding: 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1.2em;
+            font-weight: bold;
+            font-family: 'Georgia', serif;
+            transition: all 0.3s ease;
+            margin-bottom: 15px;
+        }
+
+        .execute-turn:hover {
+            background: linear-gradient(135deg, #b22222, #dc143c);
+            box-shadow: 0 0 20px rgba(220, 20, 60, 0.4);
+        }
+
+        .execute-turn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .game-log {
+            max-height: 200px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #8b4513;
+            border-radius: 5px;
+            padding: 10px;
+        }
+
+        .log-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #d4af37;
+        }
+
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 5px 8px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+
+        .log-entry.turn-result {
+            background: rgba(139, 69, 19, 0.3);
+            border-left: 3px solid #d4af37;
+        }
+
+        .log-entry.action-result {
+            background: rgba(0, 0, 0, 0.3);
+            border-left: 3px solid #8b4513;
+        }
+
+        .game-over {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .game-over-content {
+            background: linear-gradient(135deg, #2c1810, #8b4513);
+            border: 3px solid #d4af37;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            max-width: 500px;
+            box-shadow: 0 0 50px rgba(212, 175, 55, 0.5);
+        }
+
+        .game-over-title {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #d4af37;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        }
+
+        .winner-announcement {
+            font-size: 1.3em;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .restart-button {
+            background: linear-gradient(135deg, #8b0000, #b22222);
+            border: 2px solid #d4af37;
+            color: #f4e4bc;
+            padding: 15px 30px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: bold;
+            font-family: 'Georgia', serif;
+            transition: all 0.3s ease;
+        }
+
+        .restart-button:hover {
+            background: linear-gradient(135deg, #b22222, #dc143c);
+            box-shadow: 0 0 20px rgba(220, 20, 60, 0.4);
+        }
+
+        @media (max-width: 768px) {
+            .game-board {
+                grid-template-columns: 1fr;
+            }
+            
+            .players-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .game-title {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <div class="game-title">⚔️ Medieval Intrigue ⚔️</div>
+            <div class="game-subtitle">Court Politics & Noble Schemes</div>
+        </div>
+        
+        <div class="game-board">
+            <div class="main-area">
+                <div class="turn-info">
+                    <div class="turn-number">Turn <span id="turnNumber">1</span></div>
+                    <div>Choose your action wisely, noble lord...</div>
+                </div>
+                
+                <div class="players-grid" id="playersGrid">
+                    <!-- Players will be populated by JavaScript -->
+                </div>
+            </div>
+            
+            <div class="sidebar">
+                <div class="actions-panel">
+                    <div class="actions-title">🏰 Choose Your Action</div>
+                    <div class="actions-grid" id="actionsGrid">
+                        <!-- Actions will be populated by JavaScript -->
+                    </div>
+                    <button class="execute-turn" id="executeTurn" disabled>Execute Turn</button>
+                </div>
+                
+                <div class="game-log">
+                    <div class="log-title">📜 Court Chronicles</div>
+                    <div id="gameLog">
+                        <div class="log-entry">The old king sits upon his throne, easily swayed by whispers and gold. The noble families gather, each plotting their rise to power...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="game-over" id="gameOver">
+        <div class="game-over-content">
+            <div class="game-over-title">🏆 Victory Achieved! 🏆</div>
+            <div class="winner-announcement" id="winnerText"></div>
+            <button class="restart-button" onclick="initGame()">New Game</button>
+        </div>
+    </div>
+
+    <script>
+        class MedievalIntrigueGame {
+            constructor() {
+                this.turn = 1;
+                this.maxTurns = 20;
+                this.winCondition = 20;
+                this.players = [];
+                this.gameLog = [];
+                this.selectedAction = null;
+                
+                this.actions = {
+                    'protect': {
+                        name: 'Protect Reputation',
+                        description: 'Guard against rumors (+2 prestige, immune to rumors)',
+                        priority: 1,
+                        points: 2
+                    },
+                    'rumor': {
+                        name: 'Start Rumor',
+                        description: 'Spread gossip about the leader (-3 from highest, +1 to you)',
+                        priority: 2,
+                        points: 1
+                    },
+                    'favor': {
+                        name: "King's Favor",
+                        description: 'Seek royal blessing (+8 if alone, -2 if multiple)',
+                        priority: 3,
+                        points: 8
+                    },
+                    'campaign': {
+                        name: 'Campaign',
+                        description: 'Rally supporters (+3 per participant, 0 if alone)',
+                        priority: 4,
+                        points: 3
+                    },
+                    'invest': {
+                        name: 'Invest',
+                        description: 'Develop resources (+2 prestige)',
+                        priority: 5,
+                        points: 2
+                    },
+                    'bank': {
+                        name: 'Bank',
+                        description: 'Lend money (+1 per investor)',
+                        priority: 6,
+                        points: 1
+                    }
+                };
+                
+                this.familyNames = [
+                    'House Valorian', 'House Drakmoor', 'House Thornwick', 
+                    'House Ravencrest', 'House Goldmere', 'House Stormwind'
+                ];
+                
+                this.initGame();
+            }
+            
+            initGame() {
+                this.turn = 1;
+                this.players = [];
+                this.gameLog = [];
+                this.selectedAction = null;
+                
+                // Create human player
+                this.players.push({
+                    id: 0,
+                    name: this.familyNames[0],
+                    isHuman: true,
+                    prestige: 5,
+                    action: null,
+                    protected: false
+                });
+                
+                // Create AI players
+                for (let i = 1; i < 6; i++) {
+                    this.players.push({
+                        id: i,
+                        name: this.familyNames[i],
+                        isHuman: false,
+                        prestige: 5,
+                        action: null,
+                        protected: false
+                    });
+                }
+                
+                this.hideGameOver();
+                this.renderGame();
+                this.addLogEntry(`The noble families gather at court. Each starts with 5 prestige. First to reach ${this.winCondition} prestige wins!`);
+            }
+            
+            renderGame() {
+                this.renderPlayers();
+                this.renderActions();
+                this.renderTurnInfo();
+                this.renderLog();
+            }
+            
+            renderPlayers() {
+                const grid = document.getElementById('playersGrid');
+                grid.innerHTML = '';
+                
+                // Sort players by prestige (descending)
+                const sortedPlayers = [...this.players].sort((a, b) => b.prestige - a.prestige);
+                
+                sortedPlayers.forEach(player => {
+                    const card = document.createElement('div');
+                    card.className = `player-card ${player.isHuman ? 'human' : ''} ${player.prestige >= this.winCondition ? 'winner' : ''}`;
+                    
+                    const actionText = player.action 
+                        ? `Last Action: ${this.actions[player.action].name}`
+                        : 'Awaiting action...';
+                    
+                    card.innerHTML = `
+                        <div class="player-name">
+                            ${player.name}
+                            <span class="player-type">${player.isHuman ? 'You' : 'AI'}</span>
+                        </div>
+                        <div class="prestige-score">👑 ${player.prestige} Prestige</div>
+                        <div class="player-action">${actionText}</div>
+                    `;
+                    
+                    grid.appendChild(card);
+                });
+            }
+            
+            renderActions() {
+                const grid = document.getElementById('actionsGrid');
+                grid.innerHTML = '';
+                
+                Object.entries(this.actions).forEach(([key, action]) => {
+                    const button = document.createElement('button');
+                    button.className = `action-button ${this.selectedAction === key ? 'selected' : ''}`;
+                    button.onclick = () => this.selectAction(key);
+                    
+                    button.innerHTML = `
+                        <div class="action-title">${action.name}</div>
+                        <div class="action-description">${action.description}</div>
+                    `;
+                    
+                    grid.appendChild(button);
+                });
+                
+                const executeBtn = document.getElementById('executeTurn');
+                executeBtn.disabled = !this.selectedAction;
+            }
+            
+            renderTurnInfo() {
+                document.getElementById('turnNumber').textContent = this.turn;
+            }
+            
+            renderLog() {
+                const log = document.getElementById('gameLog');
+                log.innerHTML = this.gameLog.map(entry => 
+                    `<div class="log-entry ${entry.type}">${entry.message}</div>`
+                ).join('');
+                log.scrollTop = log.scrollHeight;
+            }
+            
+            selectAction(actionKey) {
+                this.selectedAction = actionKey;
+                this.renderActions();
+            }
+            
+            getAIAction(player) {
+                const actions = Object.keys(this.actions);
+                const highestPlayer = [...this.players].sort((a, b) => b.prestige - a.prestige)[0];
+                const playerRank = [...this.players].sort((a, b) => b.prestige - a.prestige).findIndex(p => p.id === player.id);
+                
+                // AI strategy based on position and situation
+                if (player.prestige >= this.winCondition - 3) {
+                    // Close to winning - play it safe
+                    return Math.random() < 0.7 ? 'protect' : 'invest';
+                } else if (playerRank === 0) {
+                    // Leading - protect or invest
+                    return Math.random() < 0.6 ? 'protect' : 'invest';
+                } else if (playerRank >= 4) {
+                    // Behind - take risks
+                    const riskActions = ['favor', 'rumor', 'campaign'];
+                    return riskActions[Math.floor(Math.random() * riskActions.length)];
+                } else {
+                    // Middle ground - balanced strategy
+                    const weights = {
+                        'protect': 15,
+                        'rumor': 20,
+                        'favor': 15,
+                        'campaign': 20,
+                        'invest': 15,
+                        'bank': 15
+                    };
+                    
+                    const total = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
+                    let random = Math.random() * total;
+                    
+                    for (const [action, weight] of Object.entries(weights)) {
+                        random -= weight;
+                        if (random <= 0) return action;
+                    }
+                    
+                    return 'invest'; // fallback
+                }
+            }
+            
+            executeTurn() {
+                if (!this.selectedAction) return;
+                
+                // Set human player action
+                this.players[0].action = this.selectedAction;
+                
+                // Set AI actions
+                for (let i = 1; i < this.players.length; i++) {
+                    this.players[i].action = this.getAIAction(this.players[i]);
+                }
+                
+                // Clear protection status from previous turn
+                this.players.forEach(player => player.protected = false);
+                
+                // Group actions by type
+                const actionGroups = {};
+                this.players.forEach(player => {
+                    if (!actionGroups[player.action]) {
+                        actionGroups[player.action] = [];
+                    }
+                    actionGroups[player.action].push(player);
+                });
+                
+                // Execute actions in priority order
+                const actionOrder = ['protect', 'rumor', 'favor', 'campaign', 'invest', 'bank'];
+                
+                this.addLogEntry(`--- Turn ${this.turn} Results ---`, 'turn-result');
+                
+                actionOrder.forEach(actionKey => {
+                    if (actionGroups[actionKey]) {
+                        this.executeAction(actionKey, actionGroups[actionKey], actionGroups);
+                    }
+                });
+                
+                // Check win condition
+                const winner = this.players.find(player => player.prestige >= this.winCondition);
+                if (winner || this.turn >= this.maxTurns) {
+                    this.endGame(winner);
+                    return;
+                }
+                
+                this.turn++;
+                this.selectedAction = null;
+                this.renderGame();
+            }
+            
+            executeAction(actionKey, players, allGroups) {
+                const action = this.actions[actionKey];
+                
+                switch (actionKey) {
+                    case 'protect':
+                        players.forEach(player => {
+                            player.prestige += action.points;
+                            player.protected = true;
+                            this.addLogEntry(`${player.name} protects their reputation (+${action.points} prestige)`, 'action-result');
+                        });
+                        break;
+                        
+                    case 'rumor':
+                        players.forEach(player => {
+                            const highestPlayer = [...this.players]
+                                .filter(p => !p.protected)
+                                .sort((a, b) => b.prestige - a.prestige)[0];
+                            
+                            if (highestPlayer && highestPlayer.id !== player.id) {
+                                highestPlayer.prestige -= 3;
+                                player.prestige += action.points;
+                                this.addLogEntry(`${player.name} spreads rumors about ${highestPlayer.name} (-3 to ${highestPlayer.name}, +1 to ${player.name})`, 'action-result');
+                            } else {
+                                this.addLogEntry(`${player.name} fails to spread effective rumors (target protected or self-targeting)`, 'action-result');
+                            }
+                        });
+                        break;
+                        
+                    case 'favor':
+                        if (players.length === 1) {
+                            players[0].prestige += action.points;
+                            this.addLogEntry(`${players[0].name} gains exclusive royal favor (+${action.points} prestige)`, 'action-result');
+                        } else {
+                            players.forEach(player => {
+                                player.prestige -= 2;
+                                this.addLogEntry(`${player.name} competes for king's favor (-2 prestige due to competition)`, 'action-result');
+                            });
+                        }
+                        break;
+                        
+                    case 'campaign':
+                        if (players.length === 1) {
+                            this.addLogEntry(`${players[0].name} campaigns alone (no effect)`, 'action-result');
+                        } else {
+                            const bonus = action.points * players.length;
+                            players.forEach(player => {
+                                player.prestige += bonus;
+                                this.addLogEntry(`${player.name} joins campaign (+${bonus} prestige from ${players.length} participants)`, 'action-result');
+                            });
+                        }
+                        break;
+                        
+                    case 'invest':
+                        players.forEach(player => {
+                            player.prestige += action.points;
+                            this.addLogEntry(`${player.name} invests in resources (+${action.points} prestige)`, 'action-result');
+                        });
+                        break;
+                        
+                    case 'bank':
+                        const investorCount = allGroups['invest'] ? allGroups['invest'].length : 0;
+                        players.forEach(player => {
+                            const bonus = action.points * investorCount;
+                            player.prestige += bonus;
+                            this.addLogEntry(`${player.name} provides banking services (+${bonus} prestige from ${investorCount} investors)`, 'action-result');
+                        });
+                        break;
+                }
+                
+                // Ensure prestige doesn't go below 0
+                this.players.forEach(player => {
+                    if (player.prestige < 0) player.prestige = 0;
+                });
+            }
+            
+            endGame(winner) {
+                const gameOverDiv = document.getElementById('gameOver');
+                const winnerText = document.getElementById('winnerText');
+                
+                if (winner) {
+                    if (winner.isHuman) {
+                        winnerText.innerHTML = `
+                            <div style="font-size: 1.5em; margin-bottom: 15px;">🎉 Congratulations! 🎉</div>
+                            <div>You have successfully outmaneuvered your rivals and gained the most influence at court!</div>
+                            <div style="margin-top: 15px;"><strong>${winner.name}</strong> achieves victory with <strong>${winner.prestige} prestige</strong>!</div>
+                        `;
+                    } else {
+                        winnerText.innerHTML = `
+                            <div style="font-size: 1.5em; margin-bottom: 15px;">👑 Victory Achieved 👑</div>
+                            <div><strong>${winner.name}</strong> has outmaneuvered all rivals and risen to prominence at court!</div>
+                            <div style="margin-top: 15px;">Final prestige: <strong>${winner.prestige}</strong></div>
+                            <div style="margin-top: 10px; opacity: 0.8;">Better luck next time...</div>
+                        `;
+                    }
+                } else {
+                    const topPlayer = [...this.players].sort((a, b) => b.prestige - a.prestige)[0];
+                    winnerText.innerHTML = `
+                        <div style="font-size: 1.5em; margin-bottom: 15px;">⏰ Time Runs Out ⏰</div>
+                        <div>After ${this.maxTurns} turns of intrigue, <strong>${topPlayer.name}</strong> holds the most influence!</div>
+                        <div style="margin-top: 15px;">Final prestige: <strong>${topPlayer.prestige}</strong></div>
+                    `;
+                }
+                
+                gameOverDiv.style.display = 'flex';
+                this.addLogEntry(`Game Over! ${winner ? winner.name + ' wins!' : 'Time limit reached!'}`, 'turn-result');
+            }
+            
+            hideGameOver() {
+                document.getElementById('gameOver').style.display = 'none';
+            }
+            
+            addLogEntry(message, type = 'action-result') {
+                this.gameLog.push({ message, type });
+                if (this.gameLog.length > 50) {
+                    this.gameLog.shift(); // Keep log from getting too long
+                }
+            }
+        }
+        
+        // Initialize game
+        let game;
+        
+        function initGame() {
+            game = new MedievalIntrigueGame();
+        }
+        
+        // Start the game when page loads
+        window.addEventListener('load', initGame);
+        
+        // Add event listener for execute turn button
+        document.addEventListener('DOMContentLoaded', function() {
+            const executeBtn = document.getElementById('executeTurn');
+            if (executeBtn) {
+                executeBtn.addEventListener('click', () => {
+                    if (game) {
+                        game.executeTurn();
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
