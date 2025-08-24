@@ -53,7 +53,6 @@ class MultiplayerMedievalGame {
         document.getElementById('createRoomBtn').onclick = () => this.createRoom();
         document.getElementById('joinRoomBtn').onclick = () => this.showJoinRoom();
         document.getElementById('startGameBtn').onclick = () => this.startGame();
-        document.getElementById('readyBtn').onclick = () => this.toggleReady();
         document.getElementById('executeTurn').onclick = () => this.submitAction();
 
         // Handle room code input
@@ -155,7 +154,7 @@ class MultiplayerMedievalGame {
         // Add player to room
         await roomRef.child(`players/${this.playerId}`).set({
             name: this.playerName,
-            ready: false,
+            ready: true,
             joinedAt: Date.now()
         });
 
@@ -170,9 +169,7 @@ class MultiplayerMedievalGame {
         
         if (this.isHost) {
             document.getElementById('startGameBtn').style.display = 'block';
-        } else {
-            document.getElementById('readyBtn').style.display = 'block';
-        }
+        } 
     }
 
     listenToRoom() {
@@ -213,13 +210,7 @@ class MultiplayerMedievalGame {
         }
     }
 
-    async toggleReady() {
-        const readyBtn = document.getElementById('readyBtn');
-        const currentReady = readyBtn.textContent === 'Not Ready';
-        
-        await this.gameRef.child(`players/${this.playerId}/ready`).set(!currentReady);
-        readyBtn.textContent = !currentReady ? 'Not Ready' : 'Ready';
-    }
+
 
     async startGame() {
         const snapshot = await this.gameRef.once('value');
