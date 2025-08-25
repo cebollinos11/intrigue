@@ -148,8 +148,15 @@ class MultiplayerMedievalGame {
         }
 
         this.playerName = name;
-        this.playerId = this.generatePlayerId();
         this.roomCode = code;
+
+        // Re-use saved playerId if reconnecting, otherwise create new one
+        const savedId = localStorage.getItem("playerId");
+        if (savedId) {
+            this.playerId = savedId;
+        } else {
+            this.playerId = this.generatePlayerId();
+        }
 
         // Check if room exists
         const roomRef = database.ref(`rooms/${this.roomCode}`);
@@ -214,28 +221,79 @@ class MultiplayerMedievalGame {
         });
     }
 
-    updateLobby(roomData) {
-        const waitingPlayers = document.getElementById('waitingPlayers');
-        waitingPlayers.innerHTML = '';
+updateLobby(roomData) {
+    const waitingPlayers = document.getElementById('waitingPlayers');
+    waitingPlayers.innerHTML = '';
 
-        Object.entries(roomData.players || {}).forEach(([id, player]) => {
-            const playerDiv = document.createElement('div');
-            playerDiv.className = `waiting-player ${player.ready ? 'ready' : ''}`;
-            playerDiv.innerHTML = `
-                ${player.name} ${id === roomData.host ? '(Host)' : ''}
-                ${player.ready ? '✅ Ready' : '⏳ Not Ready'}
-            `;
-            waitingPlayers.appendChild(playerDiv);
-        });
+    Object.entries(roomData.players || {}).forEach(([id, player]) => {
+        const playerDiv = document.createElement('div');
+        playerDiv.className = `waiting-player ${player.ready ? 'ready' : ''}`;
+        playerDiv.innerHTML = `
+            ${player.name} ${id === roomData.host ? '(Host)' : ''}
+            ${player.ready ? '✅ Ready' : '⏳ Not Ready'}
+        `;
 
-        // Update start button visibility for host
-        if (this.isHost) {
-            const allReady = Object.values(roomData.players || {}).every(p => p.ready);
-            const playerCount = Object.keys(roomData.players || {}).length;
-            const startBtn = document.getElementById('startGameBtn');
-            startBtn.style.display = (allReady && playerCount >= GAME_CONFIG.GAME_SETTINGS.MIN_PLAYERS) ? 'block' : 'none';
+        // Host can kick any non-host player
+        if (this.isHost && id !== roomData.host) {
+            const kickBtn = document.createElement('button');
+            kickBtn.textContent = '❌ Kick';
+            kickBtn.onclick = () => this.kickPlayer(id);
+            playerDiv.appendChild(kickBtn);
+        }
+
+        waitingPlayers.appendChild(playerDiv);
+    });
+
+    if (this.isHost) {
+        const allReady = Object.values(roomData.players || {}).every(p => p.ready);
+        const playerCount = Object.keys(roomData.players || {}).length;
+        const startBtn = document.getElementById('startGameBtn');
+        startBtn.style.display = (allReady && playerCount >= GAME_CONFIG.GAME_SETTINGS.MIN_PLAYERS) ? 'block' : 'none';
+    }
+}
+
+async kickPlayer(playerId) {
+    if (!this.isHost) return;
+
+    const snapshot = await this.gameRef.once('value');
+    const roomData = snapshot.val();
+    if (!roomData) return;
+
+    const kickedName = roomData.players?.[playerId]?.name || "A player";
+
+    // 1. Remove from lobby player list
+    await this.gameRef.child(`players/${playerId}`).remove();
+
+    // 2. If the game already started, also remove from game.players
+    if (roomData.game && roomData.game.players) {
+        let newPlayers = roomData.game.players.filter(p => p.id !== playerId);
+
+        // Ensure the array stays valid
+        if (!Array.isArray(newPlayers)) newPlayers = [];
+
+        // Save updated players list
+        await this.gameRef.child(`game/players`).set(newPlayers);
+
+        // 3. If we are in action selection phase, check if all submitted
+        if (roomData.game.phase === "action_selection") {
+            const allSubmitted = newPlayers.every(p => p.submitted);
+            if (allSubmitted && this.isHost) {
+                this.resolveTurn(); // host immediately resolves
+            }
         }
     }
+
+
+
+    const newLog = [...(this.gameState.gameLog || []), { 
+                message: `⚔️ ${kickedName} was kicked by the host.`,
+        type: "system",
+        timestamp: Date.now()
+    }];
+    await this.gameRef.child("game/gameLog").set(newLog);
+}
+
+
 
 
 
@@ -300,6 +358,12 @@ class MultiplayerMedievalGame {
 
     async submitAction() {
         if (!this.selectedAction || !this.gameState) return;
+
+        const idx = this.getPlayerIndex();
+        if (idx === -1) {
+            console.error("Player not found in game state:", this.playerId);
+            return;
+        }
 
         // Mark player as submitted and set their action
         const playerUpdates = {};
@@ -518,39 +582,49 @@ class MultiplayerMedievalGame {
         });
     }
 
-    renderPlayers() {
-        const grid = document.getElementById('playersGrid');
-        grid.innerHTML = '';
-        
-        // Sort players by prestige (descending)
-        const sortedPlayers = [...this.gameState.players].sort((a, b) => b.prestige - a.prestige);
-        
-        sortedPlayers.forEach(player => {
-            const card = document.createElement('div');
-            const isMyPlayer = player.id === this.playerId;
-            const isWinner = player.prestige >= this.gameState.winCondition;
-            
-            card.className = `player-card ${isMyPlayer ? 'human' : ''} ${isWinner ? 'winner' : ''}`;
-            
-            let actionText = 'Awaiting action...';
-            if (player.submitted) {
-                actionText = 'Action submitted ✅';
-            } else if (player.action) {
-                actionText = `Last: ${GAME_CONFIG.ACTIONS[player.action].name}`;
-            }
-            
-            card.innerHTML = `
-                <div class="player-name">
-                    ${player.name}
-                    <span class="player-type">${isMyPlayer ? 'You' : 'Player'}</span>
-                </div>
-                <div class="prestige-score">👑 ${player.prestige} Prestige</div>
-                <div class="player-action">${actionText}</div>
-            `;
-            
-            grid.appendChild(card);
-        });
-    }
+renderPlayers() {
+    const grid = document.getElementById('playersGrid');
+    grid.innerHTML = '';
+
+    // Sort players by prestige (descending)
+    const sortedPlayers = [...this.gameState.players].sort((a, b) => b.prestige - a.prestige);
+
+    sortedPlayers.forEach(player => {
+        const card = document.createElement('div');
+        const isMyPlayer = player.id === this.playerId;
+        const isWinner = player.prestige >= this.gameState.winCondition;
+
+        card.className = `player-card ${isMyPlayer ? 'human' : ''} ${isWinner ? 'winner' : ''}`;
+
+        let actionText = 'Awaiting action...';
+        if (player.submitted) {
+            actionText = 'Action submitted ✅';
+        } else if (player.action) {
+            actionText = `Last: ${GAME_CONFIG.ACTIONS[player.action].name}`;
+        }
+
+        card.innerHTML = `
+            <div class="player-name">
+                ${player.name}
+                <span class="player-type">${isMyPlayer ? 'You' : 'Player'}</span>
+            </div>
+            <div class="prestige-score">👑 ${player.prestige} Prestige</div>
+            <div class="player-action">${actionText}</div>
+        `;
+
+        // ✅ Add Kick button for host (but not for themselves)
+        if (this.isHost && player.id !== this.playerId) {
+            const kickBtn = document.createElement('button');
+            kickBtn.textContent = '❌ Kick';
+            kickBtn.className = 'kick-btn';
+            kickBtn.onclick = () => this.kickPlayer(player.id);
+            card.appendChild(kickBtn);
+        }
+
+        grid.appendChild(card);
+    });
+}
+
 
 renderLog() {
     const log = document.getElementById('gameLog');
