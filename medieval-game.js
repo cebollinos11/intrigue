@@ -47,6 +47,23 @@ class MultiplayerMedievalGame {
         this.gameState = null;
         
         this.initializeUI();
+
+        //reconnect feature
+            //rejoin feature
+        const savedId = localStorage.getItem("playerId");
+        const savedName = localStorage.getItem("playerName");
+        const savedRoom = localStorage.getItem("roomCode");
+        const savedHost = localStorage.getItem("isHost");
+        if (savedId && savedRoom && savedName) {
+            this.playerId = savedId;
+            this.playerName = savedName;
+            this.roomCode = savedRoom;
+            this.isHost = savedHost === "true";
+
+            this.gameRef = database.ref(`rooms/${this.roomCode}`);
+            this.showRoomInfo();
+            this.listenToRoom();
+        }
     }
 
     initializeUI() {
@@ -101,6 +118,11 @@ class MultiplayerMedievalGame {
         this.gameRef = roomRef;
         this.showRoomInfo();
         this.listenToRoom();
+        localStorage.setItem("playerId", this.playerId);
+        localStorage.setItem("playerName", this.playerName);
+        localStorage.setItem("roomCode", this.roomCode);
+        localStorage.setItem("isHost", this.isHost ? "true" : "false");
+
     }
 
     showJoinRoom() {
@@ -161,6 +183,11 @@ class MultiplayerMedievalGame {
         this.gameRef = roomRef;
         this.showRoomInfo();
         this.listenToRoom();
+        localStorage.setItem("playerId", this.playerId);
+        localStorage.setItem("playerName", this.playerName);
+        localStorage.setItem("roomCode", this.roomCode);
+        localStorage.setItem("isHost", this.isHost ? "true" : "false");
+
     }
 
     showRoomInfo() {
@@ -565,6 +592,11 @@ renderLog() {
         }
         
         gameOverDiv.style.display = 'flex';
+        //remove reconnect info
+        localStorage.removeItem("playerId");
+        localStorage.removeItem("playerName");
+        localStorage.removeItem("roomCode");
+        localStorage.removeItem("isHost");
     }
 
     generateRoomCode() {
@@ -583,4 +615,9 @@ function returnToLobby() {
 // Initialize game when page loads
 window.addEventListener('load', () => {
     new MultiplayerMedievalGame();
+
+
+
+    
+
 });
