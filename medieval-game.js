@@ -210,17 +210,26 @@ class MultiplayerMedievalGame {
         } 
     }
 
-    showTurnPopup(messages) {
+showTurnPopup(messages) {
     const popup = document.getElementById('turnPopup');
     const content = document.getElementById('turnPopupContent');
-    
-    content.innerHTML = messages.map(m => `<div>${m}</div>`).join('');
+
+    const highlightedMessages = messages.map(msg => {
+        this.gameState.players.forEach(p => {
+            const regex = new RegExp(`\\b${p.name}\\b`, 'g');
+            msg = msg.replace(regex, `<span class="player-name-highlight">${p.name}</span>`);
+        });
+        return `<div>${msg}</div>`;
+    });
+
+    content.innerHTML = highlightedMessages.join('');
     popup.style.display = 'flex';
 
     document.getElementById('closeTurnPopup').onclick = () => {
         popup.style.display = 'none';
     };
 }
+
 
     listenToRoom() {
         this.gameRef.on('value', (snapshot) => {
@@ -509,142 +518,121 @@ if (
 
     }
 
-    executeAction(actionKey, players, allGroups, gameState) {
-        const action = GAME_CONFIG.ACTIONS[actionKey];
-        
-        switch (actionKey) {
-            case 'protect':
-                players.forEach(player => {
-                    player.prestige += action.points;
-                    player.protected = true;
-                    gameState.gameLog.push({
-                        message: `${player.name} fortifies their position, gaining ${action.points} prestige and protection`,
-                        type: 'action',
-                        timestamp: Date.now()
-                    });
-                });
-                break;
-                
-            case 'rumor':
-                players.forEach(player => {
-                    const maxPrestige = Math.max(...gameState.players.map(p => p.prestige));
-                    const topPlayers = gameState.players.filter(p => !p.protected && p.prestige === maxPrestige);
-                    const possibleTargets = topPlayers.filter(p => p.id !== player.id);
+executeAction(actionKey, players, allGroups, gameState) {
+    const action = GAME_CONFIG.ACTIONS[actionKey];
+    const playerNames = players.map(p => p.name);
 
-                    if (possibleTargets.length > 0) {
-                        const target = possibleTargets[Math.floor(Math.random() * possibleTargets.length)];
-                        target.prestige -= action.damage;
-                        player.prestige += action.points;
-                        gameState.gameLog.push({
-                            message: `${player.name} spreads damaging rumors about ${target.name}, dealing ${action.damage} damage and gaining ${action.points} prestige`,
-                            type: 'action',
-                            timestamp: Date.now()
-                        });
-                    } else {
-                        gameState.gameLog.push({
-                            message: `${player.name}'s rumors find no suitable target`,
-                            type: 'action',
-                            timestamp: Date.now()
-                        });
-                    }
-                });
-                break;
-                
-            case 'favor':
-                if (players.length === 1) {
-                    players[0].prestige += action.points;
+    switch (actionKey) {
+        case 'protect':
+            players.forEach(player => player.prestige += action.points);
+            gameState.gameLog.push({
+                message: `${playerNames.join(', ')} fortify their position, gaining ${action.points} prestige and protection`,
+                type: 'action',
+                timestamp: Date.now()
+            });
+            players.forEach(p => p.protected = true);
+            break;
+
+        case 'rumor':
+            players.forEach(player => {
+                const maxPrestige = Math.max(...gameState.players.map(p => p.prestige));
+                const topPlayers = gameState.players.filter(p => !p.protected && p.prestige === maxPrestige);
+                const possibleTargets = topPlayers.filter(p => p.id !== player.id);
+
+                if (possibleTargets.length > 0) {
+                    const target = possibleTargets[Math.floor(Math.random() * possibleTargets.length)];
+                    target.prestige -= action.damage;
+                    player.prestige += action.points;
                     gameState.gameLog.push({
-                        message: `${players[0].name} gains exclusive court favor, earning ${action.points} prestige`,
+                        message: `${player.name} spreads damaging rumors about ${target.name}, dealing ${action.damage} damage and gaining ${action.points} prestige`,
                         type: 'action',
                         timestamp: Date.now()
                     });
                 } else {
-                    players.forEach(player => {
-                        player.prestige -= action.penalty;
-                        gameState.gameLog.push({
-                            message: `${player.name} competes for court favor but loses ${action.penalty} prestige in the struggle`,
-                            type: 'action',
-                            timestamp: Date.now()
-                        });
+                    gameState.gameLog.push({
+                        message: `${player.name}'s rumors find no suitable target`,
+                        type: 'action',
+                        timestamp: Date.now()
                     });
                 }
-                break;
-                
-            case 'campaign':
-    const count = players.length;
+            });
+            break;
 
-    if (count <= 1) {
-        // 0 or 1 campaigner → nothing
-        players.forEach(player => {
-            gameState.gameLog.push({
-                message: `${player.name} campaigns alone but gains no benefit`,
-                type: 'action',
-                timestamp: Date.now()
-            });
-        });
-    } else if (count === 2) {
-        // 2 campaigners → each gains 5
-        players.forEach(player => {
-            player.prestige += 5;
-            gameState.gameLog.push({
-                message: `${player.name} joins a 2-person campaign, earning 5 prestige`,
-                type: 'action',
-                timestamp: Date.now()
-            });
-        });
-    } else if (count === 3) {
-        // 3 campaigners → each gains 2
-        players.forEach(player => {
-            player.prestige += 2;
-            gameState.gameLog.push({
-                message: `${player.name} joins a 3-person campaign, earning 2 prestige`,
-                type: 'action',
-                timestamp: Date.now()
-            });
-        });
-    } else {
-        // 4 or more → each gains 1
-        players.forEach(player => {
-            player.prestige += 1;
-            gameState.gameLog.push({
-                message: `${player.name} joins a ${count}-person campaign, earning 1 prestige`,
-                type: 'action',
-                timestamp: Date.now()
-            });
-        });
-    }
-    break;
+        case 'favor':
+            if (players.length === 1) {
+                players[0].prestige += action.points;
+                gameState.gameLog.push({
+                    message: `${players[0].name} gains exclusive court favor, earning ${action.points} prestige`,
+                    type: 'action',
+                    timestamp: Date.now()
+                });
+            } else {
+                players.forEach(player => {
+                    player.prestige -= action.penalty;
+                });
+                gameState.gameLog.push({
+                    message: `${playerNames.join(', ')} compete for court favor, each losing ${action.penalty} prestige in the struggle`,
+                    type: 'action',
+                    timestamp: Date.now()
+                });
+            }
+            break;
 
-            case 'invest':
-                players.forEach(player => {
-                    player.prestige += action.points;
-                    gameState.gameLog.push({
-                        message: `${player.name} makes wise investments, gaining ${action.points} prestige`,
-                        type: 'action',
-                        timestamp: Date.now()
-                    });
+        case 'campaign':
+            const count = players.length;
+            let campaignPrestige = 0;
+
+            if (count <= 1) {
+                gameState.gameLog.push({
+                    message: `${playerNames.join(', ')} campaign alone but gain no benefit`,
+                    type: 'action',
+                    timestamp: Date.now()
                 });
-                break;
-                
-            case 'bank':
-                const investorCount = allGroups['invest'] ? allGroups['invest'].length : 0;
-                players.forEach(player => {
-                    const bonus = action.points * investorCount;
-                    player.prestige += bonus;
-                    gameState.gameLog.push({
-                        message: `${player.name} profits from banking, earning ${bonus} prestige from ${investorCount} investors`,
-                        type: 'action',
-                        timestamp: Date.now()
-                    });
+            } else if (count === 2) {
+                campaignPrestige = 5;
+            } else if (count === 3) {
+                campaignPrestige = 2;
+            } else {
+                campaignPrestige = 1;
+            }
+
+            if (campaignPrestige > 0) {
+                players.forEach(p => p.prestige += campaignPrestige);
+                gameState.gameLog.push({
+                    message: `${playerNames.join(', ')} join a ${count}-person campaign, earning ${campaignPrestige} prestige each`,
+                    type: 'action',
+                    timestamp: Date.now()
                 });
-                break;
-        }
-        
-        // Ensure prestige doesn't go below 0
-        gameState.players.forEach(player => {
-            if (player.prestige < 0) player.prestige = 0;
-        });
+            }
+            break;
+
+        case 'invest':
+            players.forEach(player => player.prestige += action.points);
+            gameState.gameLog.push({
+                message: `${playerNames.join(', ')} make wise investments, gaining ${action.points} prestige each`,
+                type: 'action',
+                timestamp: Date.now()
+            });
+            break;
+
+        case 'bank':
+            const investorCount = allGroups['invest'] ? allGroups['invest'].length : 0;
+            const bonus = action.points * investorCount;
+            players.forEach(player => player.prestige += bonus);
+            gameState.gameLog.push({
+                message: `${playerNames.join(', ')} profit from banking, earning ${bonus} prestige from ${investorCount} investors`,
+                type: 'action',
+                timestamp: Date.now()
+            });
+            break;
     }
+
+    // Ensure prestige doesn't go below 0
+    gameState.players.forEach(player => {
+        if (player.prestige < 0) player.prestige = 0;
+    });
+}
+
 
 renderPlayers() {
     const grid = document.getElementById('playersGrid');
@@ -692,14 +680,23 @@ renderPlayers() {
 
 renderLog() {
     const log = document.getElementById('gameLog');
-    const entries = this.gameState.gameLog || []; // fallback if undefined
+    const entries = this.gameState.gameLog || [];
 
-    log.innerHTML = entries.map(entry =>
-        `<div class="log-entry ${entry.type}">${entry.message}</div>`
-    ).join('');
+    log.innerHTML = entries.map(entry => {
+        let msg = entry.message;
+
+        // Wrap all known player names in highlight span
+        this.gameState.players.forEach(p => {
+            const regex = new RegExp(`\\b${p.name}\\b`, 'g');
+            msg = msg.replace(regex, `<span class="player-name-highlight">${p.name}</span>`);
+        });
+
+        return `<div class="log-entry ${entry.type}">${msg}</div>`;
+    }).join('');
 
     log.scrollTop = log.scrollHeight;
 }
+
 
     showGameOver() {
         const gameOverDiv = document.getElementById('gameOver');

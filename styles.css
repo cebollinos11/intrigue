@@ -464,3 +464,9 @@ body {
     from { opacity: 0; transform: scale(0.9); }
     to   { opacity: 1; transform: scale(1); }
 }
+
+.player-name-highlight {
+    font-weight: bold;
+    color: #d4af37; /* golden for prestige feel */
+    font-family: "Georgia", serif; /* or any fancy font */
+}
