@@ -150,6 +150,9 @@ class MultiplayerMedievalGame {
         this.playerName = name;
         this.roomCode = code;
 
+         // ✅ joining a room means you are not the host
+        this.isHost = false;
+
         // Re-use saved playerId if reconnecting, otherwise create new one
         const savedId = localStorage.getItem("playerId");
         if (savedId) {
@@ -193,7 +196,7 @@ class MultiplayerMedievalGame {
         localStorage.setItem("playerId", this.playerId);
         localStorage.setItem("playerName", this.playerName);
         localStorage.setItem("roomCode", this.roomCode);
-        localStorage.setItem("isHost", this.isHost ? "true" : "false");
+        localStorage.setItem("isHost", "false");
 
     }
 
