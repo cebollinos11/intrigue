@@ -571,25 +571,50 @@ if (
                 break;
                 
             case 'campaign':
-                if (players.length === 1) {
-                    gameState.gameLog.push({
-                        message: `${players[0].name} campaigns alone but gains no benefit`,
-                        type: 'action',
-                        timestamp: Date.now()
-                    });
-                } else {
-                    const bonus = action.points * players.length;
-                    players.forEach(player => {
-                        player.prestige += bonus;
-                        gameState.gameLog.push({
-                            message: `${player.name} joins a ${players.length}-person campaign, earning ${bonus} prestige`,
-                            type: 'action',
-                            timestamp: Date.now()
-                        });
-                    });
-                }
-                break;
-                
+    const count = players.length;
+
+    if (count <= 1) {
+        // 0 or 1 campaigner → nothing
+        players.forEach(player => {
+            gameState.gameLog.push({
+                message: `${player.name} campaigns alone but gains no benefit`,
+                type: 'action',
+                timestamp: Date.now()
+            });
+        });
+    } else if (count === 2) {
+        // 2 campaigners → each gains 5
+        players.forEach(player => {
+            player.prestige += 5;
+            gameState.gameLog.push({
+                message: `${player.name} joins a 2-person campaign, earning 5 prestige`,
+                type: 'action',
+                timestamp: Date.now()
+            });
+        });
+    } else if (count === 3) {
+        // 3 campaigners → each gains 2
+        players.forEach(player => {
+            player.prestige += 2;
+            gameState.gameLog.push({
+                message: `${player.name} joins a 3-person campaign, earning 2 prestige`,
+                type: 'action',
+                timestamp: Date.now()
+            });
+        });
+    } else {
+        // 4 or more → each gains 1
+        players.forEach(player => {
+            player.prestige += 1;
+            gameState.gameLog.push({
+                message: `${player.name} joins a ${count}-person campaign, earning 1 prestige`,
+                type: 'action',
+                timestamp: Date.now()
+            });
+        });
+    }
+    break;
+
             case 'invest':
                 players.forEach(player => {
                     player.prestige += action.points;
