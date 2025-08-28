@@ -45,6 +45,7 @@ class MultiplayerMedievalGame {
         this.isHost = false;
         this.selectedAction = null;
         this.gameState = null;
+        this.lastPopupTurn = 0; // Track last popup turn shown
         
         this.initializeUI();
 
@@ -208,6 +209,18 @@ class MultiplayerMedievalGame {
             document.getElementById('startGameBtn').style.display = 'block';
         } 
     }
+
+    showTurnPopup(messages) {
+    const popup = document.getElementById('turnPopup');
+    const content = document.getElementById('turnPopupContent');
+    
+    content.innerHTML = messages.map(m => `<div>${m}</div>`).join('');
+    popup.style.display = 'flex';
+
+    document.getElementById('closeTurnPopup').onclick = () => {
+        popup.style.display = 'none';
+    };
+}
 
     listenToRoom() {
         this.gameRef.on('value', (snapshot) => {
@@ -409,6 +422,26 @@ async kickPlayer(playerId) {
 
         this.renderPlayers();
         this.renderLog();
+                // Show turn popup for everyone when turn resolves
+if (
+    this.gameState &&
+    Array.isArray(this.gameState.gameLog) &&
+    this.gameState.phase === 'action_selection' &&
+    this.gameState.turn > this.lastPopupTurn
+) {
+    const lastTurn = this.gameState.turn - 1;
+
+    // find the index of "Turn X Results:" in the log
+    const idx = this.gameState.gameLog.findIndex(e =>
+        e.message === `Turn ${lastTurn} Results:`
+    );
+
+    if (idx !== -1) {
+        const turnMessages = this.gameState.gameLog.slice(idx).map(e => e.message);
+        this.showTurnPopup(turnMessages);
+        this.lastPopupTurn = this.gameState.turn;
+    }
+}
 
         // Check for game over
         if (this.gameState.winner || this.gameState.turn > this.gameState.maxTurns) {
@@ -471,6 +504,9 @@ async kickPlayer(playerId) {
         }
         
         await this.gameRef.child('game').set(newGameState);
+
+
+
     }
 
     executeAction(actionKey, players, allGroups, gameState) {
