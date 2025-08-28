@@ -19,17 +19,17 @@ const database = firebase.database();
 // Game configuration
 const GAME_CONFIG = {
     ACTIONS: {
-        protect: { name: "🛡️ Protect", description: "Gain 2 prestige and immunity", points: 2, priority: 1 },
-        rumor: { name: "👥 Spread Rumors", description: "Damage rival, gain prestige", damage: 3, points: 2, priority: 2 },
-        favor: { name: "💰 Court Favor", description: "Exclusive: +4, Contested: -2", points: 4, penalty: 2, priority: 3 },
-        campaign: { name: "🤝 Campaign", description: "Collaborate for bonus prestige", points: 3, priority: 4 },
-        invest: { name: "📈 Invest", description: "Steady +3 prestige gain", points: 3, priority: 5 },
-        bank: { name: "🏦 Banking", description: "Profit from others' investments", points: 2, priority: 6 }
+        protect: { name: "🛡️ Protect", description: "Gain 1⭐ and immunity against rumors", points: 1, priority: 1 },
+        rumor: { name: "👥 Spread Rumors", description: "Steal 3⭐ from the leader", damage: 3, points: 3, priority: 2 },
+        favor: { name: "💰 Court Favor", description: "Exclusive: +7⭐, Contested: -3⭐", points: 7, penalty: 3, priority: 3 },
+        campaign: { name: "🤝 Campaign", description: "Collaborate for bonus ⭐", points: 3, priority: 4 },
+        invest: { name: "📈 Invest", description: "Steady +3⭐", points: 3, priority: 5 },
+        bank: { name: "🏦 Banking", description: "Profit from others' investments (+2⭐ per investor)", points: 2, priority: 6 }
     },
     GAME_SETTINGS: {
         MIN_PLAYERS: 2,
-        MAX_PLAYERS: 6,
-        STARTING_PRESTIGE: 10,
+        MAX_PLAYERS: 20,
+        STARTING_PRESTIGE: 0,
         WIN_CONDITION: 25,
         MAX_TURNS: 15,
         MAX_LOG_ENTRIES: 50
